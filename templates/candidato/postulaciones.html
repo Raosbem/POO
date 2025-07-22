@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}Mis Postulaciones{% endblock %}
+
+{% block content %}
+<h2>Mis Postulaciones</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Vacante</th>
+            <th>Fecha de Postulación</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for postulacion in postulaciones %}
+        <tr>
+            <td>{{ postulacion.titulo }}</td>
+            <td>{{ postulacion.fechapostulacion }}</td>
+            <td>{{ postulacion.estado }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

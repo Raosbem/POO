@@ -1,0 +1,30 @@
+{% extends "layout.html" %}
+
+{% block title %}Iniciar Sesión{% endblock %}
+
+{% block content %}
+<div class="d-flex align-items-start justify-content-center" style="min-height: 100vh; padding-top: 60px; background: inherit;">
+  <div class="card text-light mx-3" style="background: rgba(10, 10, 80, 0.72); border: 0px solid rgba(255,255,255,0.2); border-radius: 1rem; box-shadow: 0 0 20px rgba(17, 13, 13, 0.93); backdrop-filter: blur(10px); max-width: 380px; width: 100%;">
+    <div class="card-body p-4">
+      <h2 class="card-title text-center mb-4" style="font-weight: 500;">Iniciar Sesión</h2>
+      <form method="POST" action="{{ url_for('login') }}">
+        <div class="form-floating mb-3">
+          <input type="email" class="form-control form-control-lg bg-transparent text-light border-0 border-bottom" id="correo" name="correo" placeholder="Correo electrónico" required>
+          <label for="correo">Correo electrónico</label>
+        </div>
+        <div class="form-floating mb-4">
+          <input type="password" class="form-control form-control-lg bg-transparent text-light border-0 border-bottom" id="contrasena" name="contrasena" placeholder="Contraseña" required>
+          <label for="contrasena">Contraseña</label>
+        </div>
+      <button type="submit" class="btn w-100 btn-lg mb-3" style="background: linear-gradient(90deg, rgba(84, 78, 192, 0.95), rgb(84, 78, 192, 0.95)); color: white; border: 2px; border-radius: 50px; font-weight: 500;">
+  Entrar
+</button>
+
+      </form>
+      <div class="text-center">
+        <a href="{{ url_for('registrarse') }}" class="text-light small text-decoration-none">¿No tienes cuenta? Regístrate</a>
+      </div>
+    </div>
+  </div> 
+</div>
+{% endblock %}

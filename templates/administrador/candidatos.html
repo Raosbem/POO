@@ -1,0 +1,27 @@
+{% extends "layout.html" %}
+
+{% block title %}Aspirantes Registrados{% endblock %}
+
+{% block content %}
+<h2>Aspirantes Registrados</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>ID</th>
+            <th>Nombre</th>
+            <th>Teléfono</th>
+            <th>Correo</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for candidato in candidatos %}
+        <tr>
+            <td>{{ candidato.id_aspirante }}</td>
+            <td>{{ candidato.nombre }}</td>
+            <td>{{ candidato.telefono }}</td>
+            <td>{{ candidato.correo }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

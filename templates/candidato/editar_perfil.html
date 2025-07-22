@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+
+{% block title %}Editar Perfil{% endblock %}
+
+{% block content %}
+<h2>Editar Perfil</h2>
+<div class="card">
+    <div class="card-body">
+        <form method="POST">
+            <div class="mb-3">
+                <label for="nombre" class="form-label">Nombre Completo</label>
+                <input type="text" class="form-control" id="nombre" name="nombre" value="{{ candidato.nombre or '' }}" required>
+            </div>
+            <div class="mb-3">
+                <label for="telefono" class="form-label">Teléfono</label>
+                <input type="text" class="form-control" id="telefono" name="telefono" value="{{ candidato.telefono or '' }}">
+            </div>
+            <div class="mb-3">
+                <label for="resumen" class="form-label">Resumen</label>
+                <textarea class="form-control" id="resumen" name="resumen" rows="3">{{ candidato.resumen or '' }}</textarea>
+            </div>
+            <button type="submit" class="btn btn-primary">Guardar Cambios</button>
+        </form>
+    </div>
+</div>
+{% endblock %}

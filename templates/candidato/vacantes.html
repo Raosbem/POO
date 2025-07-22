@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block title %}Vacantes Disponibles{% endblock %}
+
+{% block content %}
+<h2>Vacantes Disponibles</h2>
+<div class="row">
+    {% for vacante in vacantes %}
+    <div class="col-md-6 mb-4">
+        <div class="card">
+            <div class="card-body">
+                <h5 class="card-title">{{ vacante.puesto }}</h5>
+                <p class="card-text"><strong>Empresa:</strong> {{ vacante.nombre_empresa }}</p>
+                <p class="card-text">{{ vacante.resumen }}</p>
+                <p class="card-text"><strong>Estado:</strong> {{ vacante.estado }}</p>
+                <form method="POST" action="{{ url_for('postular_vacante', id_vacante=vacante.id_vacante) }}">
+                    <button type="submit" class="btn btn-primary">Postularme</button>
+                </form>
+            </div>
+        </div>
+    </div>
+    {% endfor %}
+</div>
+{% endblock %}

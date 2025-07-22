@@ -1,0 +1,25 @@
+{% extends "layout.html" %}
+
+{% block title %}Mi Perfil{% endblock %}
+
+{% block content %}
+<h2>Mi Perfil</h2>
+<div class="card">
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-6">
+                <p><strong>Nombre:</strong> {{ candidato.nombre }}</p>
+                <p><strong>Teléfono:</strong> {{ candidato.telefono }}</p>
+                <p><strong>Correo:</strong> {{ session.usuario.correo }}</p>
+            </div>
+            <div class="col-md-6">
+                <p><strong>Resumen:</strong> {{ candidato.resumen }}</p>
+            </div>
+        </div>
+        <div class="mt-3">
+            <a href="{{ url_for('editar_perfil_candidato') }}" class="btn btn-primary">Editar Perfil</a>
+            <a href="{{ url_for('vacantes_candidato') }}" class="btn btn-success">Ver Vacantes</a>
+        </div>
+    </div>
+</div>
+{% endblock %}

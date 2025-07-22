@@ -1,0 +1,79 @@
+{% extends "layout.html" %}
+{% block title %}Registrarse{% endblock %}
+
+{% block content %}
+<style>
+  .card {
+    background: rgba(0, 0, 0, 0.7);
+    border: none;
+    color: white;
+  }
+
+  .card-header h3 {
+    color: white;
+  }
+
+  .form-label {
+    color: white;
+  }
+
+  .form-control,
+  .form-select {
+    background-color: transparent;
+    color: white;
+    border: 1px solid #ccc;
+  }
+
+  .form-control::placeholder,
+  .form-select option {
+    color: white;
+  }
+
+  .form-control:focus,
+  .form-select:focus {
+    border-color: #fff;
+    background-color: rgba(127, 125, 159, 0.24);
+    color: white;
+  }
+
+  .btn-primary {
+    background: linear-gradient(90deg, rgba(52, 61, 162, 0.95), rgb(52, 61, 162, 0.95));
+    border: none;
+    color: white;
+    border-radius: 50px;
+    font-weight: 500;
+  }
+
+  .btn-primary:hover {
+    background: rgb(13, 32, 66);
+  }
+</style>
+
+<div class="row justify-content-center">
+  <div class="col-md-6">
+    <div class="card">
+      <div class="card-header"><h3 class="text-center">Regístrate</h3></div>
+      <div class="card-body">
+        <form method="POST">
+          <div class="mb-3">
+            <label for="correo" class="form-label">Correo</label>
+            <input type="email" class="form-control" id="correo" name="correo" required minlenght ="5" maxlenght = "20">
+          </div>
+          <div class="mb-3">
+            <label for="contrasena" class="form-label">Contraseña</label>
+            <input type="password" class="form-control" id="contrasena" name="contrasena" required minlenght ="8" maxlenght = "15 ">
+          </div>
+          <div class="mb-3">
+            <label for="rol" class="form-label">Selecciona tu rol</label>
+            <select class="form-select" id="rol" name="rol" required>
+              <option value="CANDIDATO">Candidato</option>
+              <option value="ADMINISTRADOR">Administrador</option>
+            </select>
+          </div>
+          <button type="submit" class="btn btn-primary w-100">Registrarse</button>
+        </form>
+      </div>
+    </div>
+  </div>
+</div>
+{% endblock %}

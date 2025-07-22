@@ -1,0 +1,26 @@
+{% extends "layout.html" %}
+{% block title %}Postulaciones{% endblock %}
+
+{% block content %}
+<h2>Postulaciones</h2>
+<table class="table table-striped">
+    <thead>
+        <tr>
+            <th>Aspirante</th>
+            <th>Puesto</th>
+            <th>Fecha</th>
+            <th>Estado</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for p in postulaciones %}
+        <tr>
+            <td>{{ p.nombre }}</td>
+            <td>{{ p.puesto }}</td>
+            <td>{{ p.fecha_postulacion }}</td>
+            <td>{{ p.estado }}</td>
+        </tr>
+        {% endfor %}
+    </tbody>
+</table>
+{% endblock %}

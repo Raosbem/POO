@@ -1,0 +1,36 @@
+{% extends "layout.html" %}
+
+{% block title %}Dashboard Administrador{% endblock %}
+
+{% block content %}
+<h2>Panel de Administración</h2>
+<div class="row">
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-primary">
+            <div class="card-body">
+                <h5 class="card-title">Aspirantes</h5>
+                <p class="card-text">Administra los aspirantes registrados</p>
+                <a href="{{ url_for('candidatos_admin') }}" class="btn btn-light">Ver Aspirantes</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-success">
+            <div class="card-body">
+                <h5 class="card-title">Vacantes</h5>
+                <p class="card-text">Administra las vacantes disponibles</p>
+                <a href="{{ url_for('vacantes_admin') }}" class="btn btn-light">Ver Vacantes</a>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-4 mb-4">
+        <div class="card text-white bg-info">
+            <div class="card-body">
+                <h5 class="card-title">Postulaciones</h5>
+                <p class="card-text">Administra las postulaciones</p>
+                <a href="{{ url_for('postulaciones_admin') }}" class="btn btn-light">Ver Postulaciones</a>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}

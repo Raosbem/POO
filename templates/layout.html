@@ -1,0 +1,147 @@
+  <!DOCTYPE html> 
+  <html lang="es">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Bolsa de Trabajo UPQ - {% block title %}{% endblock %}</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <style>
+      body {
+        margin: 0;
+        padding: 0;
+        background: linear-gradient(135deg,rgb(36, 20, 66),rgb(30, 95, 138),rgb(22, 7, 80));
+        color: #f1f1f1;
+        min-height: 100vh;
+      }
+
+      .navbar {
+        background: rgba(14, 12, 58, 0.47) !important;
+        backdrop-filter: blur(8px);
+        height: 120px; /* más alto para permitir logo más grande */
+        display: flex;
+        align-items: center;
+      }
+
+      .navbar-brand,
+      .nav-link,
+      .navbar-text {
+        color: #f1f1f1 !important;
+      }
+
+      .nav-link:hover {
+        color: #ffd700 !important;
+      }
+
+      .btn-outline-light {
+        border-color: #f1f1f1;
+        color: #f1f1f1;
+      }
+
+      .btn-outline-light:hover {
+        background: rgba(255, 255, 255, 0.1);
+      }
+
+      .container {
+        padding-top: 2rem;
+        padding-bottom: 2rem;
+      }
+
+      .card {
+        border-radius: 1rem;
+        box-shadow: 0 0 0px rgba(0, 123, 255, 0.5);
+        background: rgba(255, 255, 255, 0.6);
+      }
+
+      .alert {
+        background: rgba(255, 255, 255, 0.1);
+        border: none; 
+        color: #f1f1f1;
+      }
+
+      .logo-upq {
+        height: 100px; /* Tamaño grande del logo */
+        margin-right: 1rem;
+      }
+    </style>
+  </head>
+  <body>
+    <nav class="navbar navbar-expand-lg navbar-dark">
+      <div class="container">
+        <a class="navbar-brand d-flex align-items-center" href="#">
+          <img src="{{ url_for('static', filename='UPQ-Logoooo.png') }}" alt="Logo UPQ" class="logo-upq" />
+          Bolsa de Trabajo UPQ
+        </a>
+        <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarNav">
+          <span class="navbar-toggler-icon"></span>
+        </button>
+        <div class="collapse navbar-collapse" id="navbarNav">
+          <ul class="navbar-nav me-auto">
+            {% if 'usuario' in session %}
+              {% if session['usuario']['rol'] == 'CANDIDATO' %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('perfil_candidato') }}">Mi Perfil</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('vacantes_candidato') }}">Vacantes</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('postulaciones_candidato') }}">Mis Postulaciones</a>
+                </li>
+              {% elif session['usuario']['rol'] == 'ADMINISTRADOR' %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('dashboard_admin') }}">Dashboard</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('candidatos_admin') }}">Candidatos</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('vacantes_admin') }}">Vacantes</a>
+                </li>
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('postulaciones_admin') }}">Postulaciones</a>
+                </li>
+              {% elif session['usuario']['rol'] == 'RECLUTADOR' %}
+                <li class="nav-item">
+                  <a class="nav-link" href="{{ url_for('vacantes_reclutador') }}">Vacantes</a>
+                </li>
+              {% endif %}
+            {% endif %}
+          </ul>
+          <ul class="navbar-nav">
+            {% if 'usuario' in session %}
+              <li class="nav-item">
+                <span class="navbar-text me-3">
+                  {{ session['usuario']['correo'] }} ({{ session['usuario']['rol'] }})
+                </span>
+              </li>
+              <li class="nav-item">
+                <a class="btn btn-outline-light" href="{{ url_for('logout') }}">Cerrar Sesión</a>
+              </li>
+            {% else %}
+              <li class="nav-item">
+                <a class="nav-link" href="{{ url_for('login') }}">Iniciar Sesión</a>
+              </li>
+            {% endif %}
+          </ul>
+        </div>
+      </div>
+    </nav>
+
+    <div class="container">
+      {% with messages = get_flashed_messages(with_categories=true) %}
+        {% if messages %}
+          {% for category, message in messages %}
+            <div class="alert alert-{{ category }} alert-dismissible fade show">
+              {{ message }}
+              <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+            </div>
+          {% endfor %}
+        {% endif %}
+      {% endwith %}
+
+      {% block content %}{% endblock %}
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+  </body>
+  </html>
