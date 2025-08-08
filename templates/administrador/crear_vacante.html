@@ -7,19 +7,44 @@
     <div class="card-body">
         <form method="POST">
             <div class="mb-3">
-                <label class="form-label">Empresa</label>
-                <input type="text" class="form-control" name="nombre_empresa" required>
+                <label class="form-label">Nombre de Empresa</label>
+                <input type="text" class="form-control" name="nombre_empresa" required maxlength="100">
             </div>
             <div class="mb-3">
                 <label class="form-label">Puesto</label>
-                <input type="text" class="form-control" name="puesto" required>
+                <input type="text" class="form-control" name="puesto" required maxlength="100">
             </div>
             <div class="mb-3">
-                <label class="form-label">Resumen</label>
-                <textarea class="form-control" name="resumen" rows="3"></textarea>
+                <label class="form-label">Grado de Estudios Requerido</label>
+                <input type="text" class="form-control" name="grado_estudios" required maxlength="100">
             </div>
+            <div class="mb-3">
+                <label class="form-label">Cantidad de Plazas</label>
+                <input type="number" class="form-control" name="cantidad_plazas" min="1" max="100" required>
+            </div>
+            <div class="mb-3">
+                <label class="form-label">Resumen de Vacante</label>
+                <textarea class="form-control" name="resumen" rows="4" maxlength="1000"></textarea>
+            </div>
+
+            <div class="mb-3">
+                <label class="form-label">Habilidades Requeridas</label>
+                <div class="form-text">Marca las habilidades necesarias y si son obligatorias</div>
+                {% for habilidad in habilidades %}
+                    <div class="form-check">
+                        <input class="form-check-input" type="checkbox" name="habilidades" value="{{ habilidad.id_habilidad }}">
+                        <label class="form-check-label">{{ habilidad.nombre }}</label>
+                        <div class="form-check form-switch d-inline ms-3">
+                            <input class="form-check-input" type="checkbox" name="obligatorias" value="{{ habilidad.id_habilidad }}">
+                            <label class="form-check-label">Obligatoria</label>
+                        </div>
+                    </div>
+                {% endfor %}
+            </div>
+
             <button type="submit" class="btn btn-primary">Crear Vacante</button>
         </form>
     </div>
 </div>
 {% endblock %}
+

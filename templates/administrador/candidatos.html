@@ -11,6 +11,7 @@
             <th>Nombre</th>
             <th>Teléfono</th>
             <th>Correo</th>
+            <th>Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -20,6 +21,9 @@
             <td>{{ candidato.nombre }}</td>
             <td>{{ candidato.telefono }}</td>
             <td>{{ candidato.correo }}</td>
+            <td>
+                <a href="{{ url_for('ver_aspirante_admin', id_aspirante=candidato.id_aspirante) }}" class="btn btn-sm btn-info">Ver Perfil</a>
+            </td>
         </tr>
         {% endfor %}
     </tbody>
