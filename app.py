@@ -15,7 +15,7 @@ app.secret_key = 'clave_secreta_upq'
 def get_db_connection():
     return pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};'
-        'SERVER=LAPTOP-G46DTI8N\\SQLEXPRESS;'
+        'SERVER=ANTHONY-RAMOS\SQLEXPRESS;'
         'DATABASE=BolsaTrabajoUPQ;'
         'Trusted_Connection=yes;'
     )
