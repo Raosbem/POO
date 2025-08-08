@@ -136,9 +136,13 @@ def editar_perfil_candidato():
         return redirect(url_for('login'))
 
     user = session['usuario']
-    id_asp = user['id_aspirante']
     conn = get_db_connection()
     cursor = conn.cursor()
+
+    # Intentar recuperar el id_aspirante si existe
+    cursor.execute("SELECT id_aspirante FROM Aspirantes WHERE id_usuario = ?", (user['id'],))
+    row = cursor.fetchone()
+    id_asp = row.id_aspirante if row else None
 
     if request.method == 'POST':
         nombre = request.form['nombre']
@@ -146,33 +150,16 @@ def editar_perfil_candidato():
         resumen = request.form.get('resumen', '')
 
         if id_asp:
-            cursor.execute("SELECT 1 FROM Aspirantes WHERE id_aspirante = ?", (id_asp,))
-            existe = cursor.fetchone()
-
-            if existe:
-                # Ya existe → hacer UPDATE
-                cursor.execute("""
-                    UPDATE Aspirantes SET nombre=?, telefono=?, resumen=? WHERE id_aspirante=?
-                """, (nombre, telefono, resumen, id_asp))
-            else:
-                # No existe → hacer INSERT
-                cursor.execute("""
-                    INSERT INTO Aspirantes (id_usuario, nombre, telefono, resumen)
-                    VALUES (?, ?, ?, ?)
-                """, (user['id'], nombre, telefono, resumen))
-                cursor.execute("SELECT SCOPE_IDENTITY()")
-                nuevo_id = cursor.fetchone()[0]
-                cursor.execute("UPDATE Usuarios SET id_aspirante=? WHERE id_usuario=?", (nuevo_id, user['id']))
-                session['usuario']['id_aspirante'] = nuevo_id
+            cursor.execute("""
+                UPDATE Aspirantes SET nombre=?, telefono=?, resumen=? WHERE id_aspirante=?
+            """, (nombre, telefono, resumen, id_asp))
         else:
-            # Caso de seguridad extra: si no hay id_asp, igual se inserta
             cursor.execute("""
                 INSERT INTO Aspirantes (id_usuario, nombre, telefono, resumen)
                 VALUES (?, ?, ?, ?)
             """, (user['id'], nombre, telefono, resumen))
-            cursor.execute("SELECT SCOPE_IDENTITY()")
-            nuevo_id = cursor.fetchone()[0]
-            cursor.execute("UPDATE Usuarios SET id_aspirante=? WHERE id_usuario=?", (nuevo_id, user['id']))
+            nuevo_id = cursor.execute("SELECT SCOPE_IDENTITY()").fetchval()
+            # Guardar en la sesión si quieres
             session['usuario']['id_aspirante'] = nuevo_id
 
         conn.commit()
@@ -189,10 +176,10 @@ def editar_perfil_candidato():
         if row:
             cols = [col[0].lower() for col in cursor.description]
             candidato = dict(zip(cols, row))
+
     cursor.close()
     conn.close()
     return render_template('candidato/editar_perfil.html', candidato=candidato)
-
 
 
 @app.route('/candidato/vacantes')
@@ -200,20 +187,36 @@ def vacantes_candidato():
     if 'usuario' not in session or session['usuario']['rol'] != 'CANDIDATO':
         return redirect(url_for('login'))
 
+    id_asp = session['usuario']['id_aspirante']
     conn = get_db_connection()
     cursor = conn.cursor()
+
     cursor.execute("""
-        SELECT id_vacante, nombre_empresa, puesto, resumen, estado
-        FROM Vacantes
+        SELECT V.id_vacante, V.nombre_empresa, V.puesto, V.resumen, V.estado, V.cantidad_plazas,
+               (
+                   SELECT COUNT(*) 
+                   FROM Postulaciones P 
+                   WHERE P.id_vacante = V.id_vacante AND P.estado = 'aceptado'
+               ) AS ocupadas,
+               (
+                   SELECT COUNT(*) 
+                   FROM Postulaciones 
+                   WHERE id_aspirante = ? AND id_vacante = V.id_vacante
+               ) AS ya_postulado
+        FROM Vacantes V
         WHERE estado = 'abierta'
-    """)
+    """, (id_asp,))
+    
     rows = cursor.fetchall()
     cols = [col[0].lower() for col in cursor.description]
     vacantes = [dict(zip(cols, row)) for row in rows]
+    
     cursor.close()
     conn.close()
 
     return render_template('candidato/vacantes.html', vacantes=vacantes)
+
+
 
 
 @app.route('/candidato/postular/<int:id_vacante>', methods=['POST'])
@@ -221,17 +224,37 @@ def postular_vacante(id_vacante):
     if 'usuario' not in session or session['usuario']['rol'] != 'CANDIDATO':
         return redirect(url_for('login'))
 
-    id_asp = session['usuario']['id_aspirante']
+    id_usuario = session['usuario']['id']
+
     conn = get_db_connection()
     cursor = conn.cursor()
 
+    # Obtener id_aspirante confiable desde BD
+    cursor.execute("SELECT id_aspirante FROM Aspirantes WHERE id_usuario = ?", (id_usuario,))
+    row = cursor.fetchone()
+
+    if not row:
+        flash('Debes completar tu perfil antes de postularte.', 'danger')
+        cursor.close()
+        conn.close()
+        return redirect(url_for('vacantes_candidato'))
+
+    id_asp = row.id_aspirante
+
     try:
+        # Validar si ya está postulando a esa vacante
         cursor.execute("""
-            INSERT INTO Postulaciones (id_aspirante, id_vacante, fecha_postulacion, estado)
-            VALUES (?, ?, GETDATE(), 'pendiente')
+            SELECT 1 FROM Postulaciones WHERE id_aspirante = ? AND id_vacante = ?
         """, (id_asp, id_vacante))
-        conn.commit()
-        flash('Postulación realizada con éxito', 'success')
+        if cursor.fetchone():
+            flash('Ya te has postulado a esta vacante.', 'warning')
+        else:
+            cursor.execute("""
+                INSERT INTO Postulaciones (id_aspirante, id_vacante, fecha_postulacion, estado)
+                VALUES (?, ?, GETDATE(), 'pendiente')
+            """, (id_asp, id_vacante))
+            conn.commit()
+            flash('Postulación realizada con éxito', 'success')
     except Exception as e:
         flash(f'Error al postular: {e}', 'danger')
     finally:
@@ -239,6 +262,9 @@ def postular_vacante(id_vacante):
         conn.close()
 
     return redirect(url_for('vacantes_candidato'))
+
+    return redirect(url_for('vacantes_candidato'))
+
 
 
 @app.route('/candidato/postulaciones')
@@ -320,26 +346,68 @@ def crear_vacante_admin():
     if 'usuario' not in session or session['usuario']['rol'] != 'ADMINISTRADOR':
         return redirect(url_for('login'))
 
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Cargamos habilidades disponibles
+    cursor.execute("SELECT id_habilidad, nombre FROM Habilidades")
+    habilidades = [{'id_habilidad': row[0], 'nombre': row[1]} for row in cursor.fetchall()]
+
     if request.method == 'POST':
-        empresa = request.form['nombre_empresa']
-        puesto = request.form['puesto']
-        resumen = request.form['resumen']
+        # Campos del formulario
+        empresa = request.form.get('nombre_empresa', '').strip()
+        puesto = request.form.get('puesto', '').strip()
+        grado = request.form.get('grado_estudios', '').strip()
+        resumen = request.form.get('resumen', '').strip()
         estado = 'abierta'
 
-        conn = get_db_connection()
-        cursor = conn.cursor()
-        cursor.execute("""
-            INSERT INTO Vacantes (nombre_empresa, puesto, resumen, estado)
-            VALUES (?, ?, ?, ?)
-        """, (empresa, puesto, resumen, estado))
-        conn.commit()
-        cursor.close()
-        conn.close()
+        try:
+            plazas = int(request.form.get('cantidad_plazas', '1'))
+            if plazas < 1 or plazas > 100:
+                raise ValueError
+        except ValueError:
+            flash('Cantidad de plazas inválida (1-100)', 'danger')
+            return render_template('administrador/crear_vacante.html', habilidades=habilidades)
 
+        # Validaciones adicionales
+        if not (2 <= len(empresa) <= 100):
+            flash('Nombre de empresa inválido', 'danger')
+            return render_template('administrador/crear_vacante.html', habilidades=habilidades)
+
+        if not (2 <= len(puesto) <= 100):
+            flash('Puesto inválido', 'danger')
+            return render_template('administrador/crear_vacante.html', habilidades=habilidades)
+
+        if not (2 <= len(grado) <= 100):
+            flash('Grado de estudios inválido', 'danger')
+            return render_template('administrador/crear_vacante.html', habilidades=habilidades)
+
+        # Insertamos la vacante y recuperamos ID generado
+        cursor.execute("""
+            INSERT INTO Vacantes (nombre_empresa, puesto, grado_estudios, resumen, cantidad_plazas, estado)
+            OUTPUT INSERTED.id_vacante
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (empresa, puesto, grado, resumen, plazas, estado))
+        id_vacante = cursor.fetchone()[0]
+
+        # Habilidades seleccionadas
+        habilidades_ids = request.form.getlist('habilidades')
+        obligatorias_ids = set(request.form.getlist('obligatorias'))
+
+        for id_hab in habilidades_ids:
+            obligatorio = 1 if id_hab in obligatorias_ids else 0
+            cursor.execute("""
+                INSERT INTO Vacante_Habilidad (id_vacante, id_habilidad, obligatorio)
+                VALUES (?, ?, ?)
+            """, (id_vacante, id_hab, obligatorio))
+
+        conn.commit()
         flash('Vacante creada con éxito', 'success')
         return redirect(url_for('vacantes_admin'))
 
-    return render_template('administrador/crear_vacante.html')
+    cursor.close()
+    conn.close()
+    return render_template('administrador/crear_vacante.html', habilidades=habilidades)
 
 
 @app.route('/admin/vacantes/editar/<int:id_vacante>', methods=['GET', 'POST'])
@@ -414,3 +482,128 @@ def postulaciones_admin():
     conn.close()
 
     return render_template('administrador/postulaciones.html', postulaciones=postulaciones)
+
+@app.route('/admin/postulaciones/aceptar/<int:id_postulacion>', methods=['POST'])
+def aceptar_postulacion(id_postulacion):
+    if 'usuario' not in session or session['usuario']['rol'] != 'ADMINISTRADOR':
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    try:
+        # 1. Obtener info de la postulación
+        cursor.execute("SELECT id_vacante FROM Postulaciones WHERE id_postulacion = ?", (id_postulacion,))
+        row = cursor.fetchone()
+        if not row:
+            flash("Postulación no encontrada.", "danger")
+            return redirect(url_for('postulaciones_admin'))
+        
+        id_vacante = row.id_vacante
+
+        # 2. Aceptar la postulación
+        cursor.execute("UPDATE Postulaciones SET estado = 'aceptado' WHERE id_postulacion = ?", (id_postulacion,))
+
+        # 3. Contar cuántos ya fueron aceptados
+        cursor.execute("""
+            SELECT COUNT(*) 
+            FROM Postulaciones 
+            WHERE id_vacante = ? AND estado = 'aceptado'
+        """, (id_vacante,))
+        aceptados = cursor.fetchone()[0]
+
+        # 4. Obtener cantidad total de plazas
+        cursor.execute("SELECT cantidad_plazas FROM Vacantes WHERE id_vacante = ?", (id_vacante,))
+        total_plazas = cursor.fetchone()[0]
+
+        # 5. Si ya se llenó, cerrar la vacante
+        if aceptados >= total_plazas:
+            cursor.execute("UPDATE Vacantes SET estado = 'cerrada' WHERE id_vacante = ?", (id_vacante,))
+
+        conn.commit()
+        flash("Candidato aceptado y plazas actualizadas.", "success")
+
+    except Exception as e:
+        conn.rollback()
+        flash(f"Error al aceptar candidato: {e}", "danger")
+    
+    finally:
+        cursor.close()
+        conn.close()
+
+    return redirect(url_for('postulaciones_admin'))
+
+
+
+
+@app.route('/admin/postulaciones/rechazar/<int:id_postulacion>', methods=['POST'])
+def rechazar_postulacion(id_postulacion):
+    if 'usuario' not in session or session['usuario']['rol'] != 'ADMINISTRADOR':
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cur = conn.cursor()
+    cur.execute("UPDATE Postulaciones SET estado='rechazado' WHERE id_postulacion=?", (id_postulacion,))
+    conn.commit()
+    cur.close()
+    conn.close()
+
+    flash('Postulación rechazada.', 'warning')
+    return redirect(url_for('postulaciones_admin'))
+
+
+@app.route('/admin/candidatos/<int:id_aspirante>')
+def ver_aspirante_admin(id_aspirante):
+    if 'usuario' not in session or session['usuario']['rol'] != 'ADMINISTRADOR':
+        return redirect(url_for('login'))
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    # Datos principales
+    cursor.execute("SELECT * FROM Aspirantes WHERE id_aspirante=?", (id_aspirante,))
+    asp_row = cursor.fetchone()
+    aspirante = {}
+    if asp_row:
+        cols = [col[0].lower() for col in cursor.description]
+        aspirante = dict(zip(cols, asp_row))
+
+    # Educación
+    cursor.execute("SELECT * FROM Educacion WHERE id_aspirante=?", (id_aspirante,))
+    educacion = [dict(zip([col[0].lower() for col in cursor.description], row)) for row in cursor.fetchall()]
+
+    # Experiencia
+    cursor.execute("SELECT * FROM Experiencia WHERE id_aspirante=?", (id_aspirante,))
+    experiencia = [dict(zip([col[0].lower() for col in cursor.description], row)) for row in cursor.fetchall()]
+
+    # Referencias
+    cursor.execute("SELECT * FROM Referencias WHERE id_aspirante=?", (id_aspirante,))
+    referencias = [dict(zip([col[0].lower() for col in cursor.description], row)) for row in cursor.fetchall()]
+
+    # Habilidades
+    cursor.execute("""
+        SELECT H.nombre FROM Habilidades H
+        JOIN Aspirante_Habilidad AH ON H.id_habilidad = AH.id_habilidad
+        WHERE AH.id_aspirante=?
+    """, (id_aspirante,))
+    habilidades = [row[0] for row in cursor.fetchall()]
+
+    # Competencias
+    cursor.execute("""
+        SELECT C.nombre FROM Competencias C
+        JOIN Aspirante_Competencia AC ON C.id_competencia = AC.id_competencia
+        WHERE AC.id_aspirante=?
+    """, (id_aspirante,))
+    competencias = [row[0] for row in cursor.fetchall()]
+
+    cursor.close()
+    conn.close()
+
+    return render_template('administrador/ver_aspirante.html', 
+                           aspirante=aspirante,
+                           educacion=educacion,
+                           experiencia=experiencia,
+                           referencias=referencias,
+                           habilidades=habilidades,
+                           competencias=competencias)
+

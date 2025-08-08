@@ -26,9 +26,10 @@
             <td>{{ vacante.estado }}</td>
             <td>
                 <a href="{{ url_for('editar_vacante_admin', id_vacante=vacante.id_vacante) }}" class="btn btn-sm btn-primary">Editar</a>
-                <form method="POST" action="{{ url_for('eliminar_vacante_admin', id_vacante=vacante.id_vacante) }}" style="display:inline;">
+                <form method="POST" action="{{ url_for('eliminar_vacante_admin', id_vacante=vacante.id_vacante) }}" style="display:inline;" onsubmit="return confirm('¿Estás seguro de eliminar esta vacante?');">
                     <button type="submit" class="btn btn-sm btn-danger">Eliminar</button>
                 </form>
+
             </td>
         </tr>
         {% endfor %}

@@ -10,6 +10,7 @@
             <th>Puesto</th>
             <th>Fecha</th>
             <th>Estado</th>
+            <th>Acciones</th>
         </tr>
     </thead>
     <tbody>
@@ -19,6 +20,18 @@
             <td>{{ p.puesto }}</td>
             <td>{{ p.fecha_postulacion }}</td>
             <td>{{ p.estado }}</td>
+            <td>
+                {% if p.estado == 'pendiente' %}
+                    <form method="POST" action="{{ url_for('aceptar_postulacion', id_postulacion=p.id_postulacion) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-success">Aceptar</button>
+                    </form>
+                    <form method="POST" action="{{ url_for('rechazar_postulacion', id_postulacion=p.id_postulacion) }}" style="display:inline;">
+                        <button type="submit" class="btn btn-sm btn-danger">Rechazar</button>
+                    </form>
+                {% else %}
+                    <em>No editable</em>
+                {% endif %}
+            </td>
         </tr>
         {% endfor %}
     </tbody>

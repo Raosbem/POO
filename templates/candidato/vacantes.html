@@ -12,10 +12,18 @@
                 <h5 class="card-title">{{ vacante.puesto }}</h5>
                 <p class="card-text"><strong>Empresa:</strong> {{ vacante.nombre_empresa }}</p>
                 <p class="card-text">{{ vacante.resumen }}</p>
+                <p class="card-text"><strong>Plazas disponibles:</strong> {{ vacante.cantidad_plazas - vacante.ocupadas }}</p>
                 <p class="card-text"><strong>Estado:</strong> {{ vacante.estado }}</p>
-                <form method="POST" action="{{ url_for('postular_vacante', id_vacante=vacante.id_vacante) }}">
-                    <button type="submit" class="btn btn-primary">Postularme</button>
-                </form>
+
+                {% if vacante.ya_postulado > 0 %}
+                    <p class="text-warning">Ya te postulaste a esta vacante.</p>
+                {% elif (vacante.cantidad_plazas - vacante.ocupadas) <= 0 %}
+                    <p class="text-danger">Vacante sin plazas disponibles.</p>
+                {% else %}
+                    <form method="POST" action="{{ url_for('postular_vacante', id_vacante=vacante.id_vacante) }}">
+                        <button type="submit" class="btn btn-primary">Postularme</button>
+                    </form>
+                {% endif %}
             </div>
         </div>
     </div>

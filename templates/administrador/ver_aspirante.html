@@ -1,0 +1,121 @@
+{% extends "layout.html" %}
+
+{% block title %}Perfil de Aspirante{% endblock %}
+
+{% block content %}
+<h2>Perfil Completo del Aspirante</h2>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Información General</h5>
+    {% if aspirante %}
+    <p><strong>Nombre:</strong> {{ aspirante.nombre or 'N/D' }}</p>
+    <p><strong>Apellido Paterno:</strong> {{ aspirante.apellido_paterno or 'N/D' }}</p>
+    <p><strong>Apellido Materno:</strong> {{ aspirante.apellido_materno or 'N/D' }}</p>
+    <p><strong>Teléfono:</strong> {{ aspirante.telefono or 'N/D' }}</p>
+    <p><strong>Dirección:</strong> {{ aspirante.direccion or 'N/D' }}</p>
+    <p><strong>Estado Civil:</strong> {{ aspirante.estado_civil or 'N/D' }}</p>
+    <p><strong>Sexo:</strong> {{ aspirante.sexo or 'N/D' }}</p>
+    <p><strong>Fecha de Nacimiento:</strong> {{ aspirante.fecha_nacimiento or 'N/D' }}</p>
+    <p><strong>Nacionalidad:</strong> {{ aspirante.nacionalidad or 'N/D' }}</p>
+    <p><strong>RFC:</strong> {{ aspirante.rfc or 'N/D' }}</p>
+    <p><strong>Modalidad Preferida:</strong> {{ aspirante.modalidad or 'N/D' }}</p>
+    <p><strong>Puesto Actual:</strong> {{ aspirante.puesto_actual or 'N/D' }}</p>
+    <p><strong>Puesto Deseado:</strong> {{ aspirante.puesto_deseado or 'N/D' }}</p>
+    <p><strong>Resumen Profesional:</strong> {{ aspirante.resumen or 'N/D' }}</p>
+    {% else %}
+    <p>No hay información del aspirante.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Educación</h5>
+    {% if educacion %}
+    <ul>
+      {% for edu in educacion %}
+      <li>
+        {{ edu.grado }} en {{ edu.institucion }} ({{ edu.pais }}) - 
+        {{ edu.estatus }}<br>
+        <small>Desde {{ edu.fecha_inicio }} hasta {{ edu.fecha_fin }}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No hay información educativa registrada.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Experiencia Laboral</h5>
+    {% if experiencia %}
+    <ul>
+      {% for exp in experiencia %}
+      <li>
+        <strong>{{ exp.puesto }}</strong> en {{ exp.empresa }} <br>
+        <small>{{ exp.fecha_ingreso }} a {{ exp.fecha_salida }}</small><br>
+        <em>Funciones:</em> {{ exp.funciones }} <br>
+        <em>Motivo de salida:</em> {{ exp.motivo_salida }}
+      </li>
+      <hr>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No hay experiencia laboral registrada.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Referencias</h5>
+    {% if referencias %}
+    <ul>
+      {% for ref in referencias %}
+      <li>
+        {{ ref.nombre }} - {{ ref.ocupacion }} en {{ ref.empresa }} <br>
+        <small>Teléfono: {{ ref.telefono }} | Años de Conocido: {{ ref.anios_conocido }}</small>
+      </li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No hay referencias registradas.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Habilidades</h5>
+    {% if habilidades %}
+    <ul>
+      {% for h in habilidades %}
+      <li>{{ h }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No hay habilidades registradas.</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="card mb-4">
+  <div class="card-body">
+    <h5 class="card-title">Competencias</h5>
+    {% if competencias %}
+    <ul>
+      {% for c in competencias %}
+      <li>{{ c }}</li>
+      {% endfor %}
+    </ul>
+    {% else %}
+    <p>No hay competencias registradas.</p>
+    {% endif %}
+  </div>
+</div>
+
+<a href="{{ url_for('candidatos_admin') }}" class="btn btn-secondary">Volver a la lista</a>
+{% endblock %}
