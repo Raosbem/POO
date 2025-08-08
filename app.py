@@ -1,26 +1,30 @@
 from flask import Flask, render_template, request, redirect, session, url_for, flash, abort
 import pyodbc
 import re
+from werkzeug.utils import secure_filename
+import os
 
 EMAIL_REGEX = re.compile(r'^[^\s@]+@[^\s@]+\.[^\s@]+$')
 PASSWORD_REGEX = re.compile(
     r'^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[!@#$%^&*(),.?":{}|<>]).{8,64}$'
 )
+
 ALLOWED_ROLES = {'ASPIRANTE', 'ADMIN', 'RECLUTADOR'}
 
 app = Flask(__name__)
 app.secret_key = 'clave_secreta_upq'
 
-# Configuración de conexión a la base de datos
+UPLOAD_FOLDER = 'static/profile_pics'
+app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
+
 def get_db_connection():
     return pyodbc.connect(
         'DRIVER={ODBC Driver 17 for SQL Server};'
-        'SERVER=ANTHONY-RAMOS\SQLEXPRESS;'
+        'SERVER=ANTHONY-RAMOS\\SQLEXPRESS;'
         'DATABASE=BolsaTrabajoUPQ;'
         'Trusted_Connection=yes;'
     )
 
-# --- Login / Logout ---
 @app.route('/', methods=['GET', 'POST'])
 def login():
     if request.method == 'POST':
@@ -64,7 +68,6 @@ def logout():
     session.clear()
     return redirect(url_for('login'))
 
-# --- Registro ---
 @app.route('/registrarse', methods=['GET', 'POST'])
 def registrarse():
     if request.method == 'POST':
@@ -75,17 +78,13 @@ def registrarse():
         if rol not in ['CANDIDATO', 'ADMINISTRADOR']:
             flash('Rol inválido para registrarse', 'danger')
             return redirect(url_for('registrarse'))
-        
-        # Validaciones
+
         if not EMAIL_REGEX.match(correo):
             flash('Correo inválido.', 'danger'); return redirect(url_for('registrarse'))
         if not (5 <= len(correo) <= 25):
             flash('Correo debe tener 5–25 caracteres.', 'danger'); return redirect(url_for('registrarse'))
         if not PASSWORD_REGEX.match(contrasena) or correo.lower() in contrasena.lower():
             flash('Contraseña inválida (8–64, mayúsculas, minúsculas, dígitos, símbolos).', 'danger'); return redirect(url_for('registrarse'))
-        if rol not in ['CANDIDATO', 'ADMINISTRADOR']:
-            flash('Rol inválido para registrarse', 'danger')
-            return redirect(url_for('registrarse'))
 
         conn = get_db_connection()
         cur = conn.cursor()
@@ -94,7 +93,6 @@ def registrarse():
             cur.close(); conn.close()
             flash('El correo ya está registrado.', 'danger'); return redirect(url_for('registrarse'))
 
-        # Insertamos usuario
         cur.execute("INSERT INTO Usuarios(correo, contrasena, rol) VALUES (?, ?, ?)",
                     (correo, contrasena, rol))
         conn.commit()
@@ -105,9 +103,25 @@ def registrarse():
         return redirect(url_for('login'))
 
     return render_template('registrarse.html')
-# --------------------------
-# Rutas para Aspirantes
-# --------------------------
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 @app.route('/candidato/perfil')
 def perfil_candidato():
@@ -119,79 +133,213 @@ def perfil_candidato():
     cursor = conn.cursor()
     cursor.execute("SELECT * FROM Aspirantes WHERE id_aspirante = ?", (id_asp,))
     row = cursor.fetchone()
-    
+
     candidato = {}
     if row:
         cols = [col[0].lower() for col in cursor.description]
         candidato = dict(zip(cols, row))
-    
+
     cursor.close()
     conn.close()
     return render_template('candidato/perfil.html', candidato=candidato)
-
 
 @app.route('/candidato/editar_perfil', methods=['GET', 'POST'])
 def editar_perfil_candidato():
     if 'usuario' not in session or session['usuario']['rol'] != 'CANDIDATO':
         return redirect(url_for('login'))
 
-    user = session['usuario']
-    id_asp = user['id_aspirante']
+    user = session.get('usuario')
     conn = get_db_connection()
     cursor = conn.cursor()
 
-    if request.method == 'POST':
-        nombre = request.form['nombre']
-        telefono = request.form['telefono']
-        resumen = request.form.get('resumen', '')
+    cursor.execute("SELECT id_aspirante, foto_perfil, cv_pdf FROM Aspirantes WHERE id_usuario = ?", (user['id'],))
+    aspirante_row = cursor.fetchone()
 
-        if id_asp:
-            cursor.execute("SELECT 1 FROM Aspirantes WHERE id_aspirante = ?", (id_asp,))
-            existe = cursor.fetchone()
+    if aspirante_row:
+        id_asp = aspirante_row.id_aspirante
+        foto_perfil_path = aspirante_row.foto_perfil
+        cv_pdf_path = aspirante_row.cv_pdf
+        existe = True
+    else:
+        id_asp = None
+        foto_perfil_path = cv_pdf_path = None
+        existe = False
+
+    if request.method == 'POST':
+        try:
+            nombre = request.form.get('nombre', '')
+            apellido_paterno = request.form.get('apellido_paterno', '')
+            apellido_materno = request.form.get('apellido_materno', '')
+            telefono = request.form.get('telefono', '')
+            estado_civil = request.form.get('estado_civil', '')
+            sexo = request.form.get('sexo', '')
+            fecha_nacimiento = request.form.get('fecha_nacimiento', '')
+            nacionalidad = request.form.get('nacionalidad', '')
+            rfc = request.form.get('rfc', '')
+            direccion = request.form.get('direccion', '')
+            disponibilidad_reubicacion = 1 if request.form.get('disponibilidad_reubicacion') else 0
+            disponibilidad_viajar = 1 if request.form.get('disponibilidad_viajar') else 0
+            licencia_conducir = 1 if request.form.get('licencia_conducir') else 0
+            modalidad = request.form.get('modalidad', '')
+            puesto_actual = request.form.get('puesto_actual', '')
+            resumen = request.form.get('resumen', '')
+
+            # Preparación Académica
+            grado_estudios = request.form.get('grado_estudios', '')
+            cedula_profesional = request.form.get('cedula_profesional', '')
+            estatus_academico = request.form.get('estatus_academico', '')
+            institucion = request.form.get('institucion', '')
+            pais_academico = request.form.get('pais_academico', '')
+            fecha_inicio = request.form.get('fecha_inicio', '')
+            fecha_fin = request.form.get('fecha_fin', '')
+
+            # Experiencia Laboral
+            empresa = request.form.get('empresa', '')
+            domicilio_empresa = request.form.get('domicilio_empresa', '')
+            telefono_empresa = request.form.get('telefono_empresa', '')
+            telefono_jefe = request.form.get('telefono_jefe', '')
+            puesto_jefe = request.form.get('puesto_jefe', '')
+            fecha_ingreso = request.form.get('fecha_ingreso', '')
+            fecha_salida = request.form.get('fecha_salida', '')
+            puesto = request.form.get('puesto', '')
+            funciones = request.form.get('funciones', '')
+            sueldo_inicial = request.form.get('sueldo_inicial', '')
+            sueldo_final = request.form.get('sueldo_final', '')
+            motivo_salida = request.form.get('motivo_salida', '')
+
+            # Referencias
+            nombre_referencia = request.form.get('nombre_referencia', '')
+            ocupacion_referencia = request.form.get('ocupacion_referencia', '')
+            telefono_referencia = request.form.get('telefono_referencia', '')
+            anios_conocido = request.form.get('anios_conocido', '')
+            empresa_referencia = request.form.get('empresa_referencia', '')
+            doc_pdf_referencia = request.files.get('doc_pdf_referencia')
+            doc_pdf_referencia_path = None
+            if doc_pdf_referencia and doc_pdf_referencia.filename != '':
+                # Guardamos el archivo y obtenemos la ruta
+                filename = secure_filename(doc_pdf_referencia.filename)
+                doc_pdf_referencia_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                doc_pdf_referencia.save(doc_pdf_referencia_path)
+
+            foto_perfil = request.files.get('foto_perfil')
+            if foto_perfil and foto_perfil.filename != '':
+                filename = secure_filename(foto_perfil.filename)
+                foto_perfil_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                foto_perfil.save(foto_perfil_path)
+
+            cv_pdf = request.files.get('cv_pdf')
+            if cv_pdf and cv_pdf.filename != '':
+                filename = secure_filename(cv_pdf.filename)
+                cv_pdf_path = os.path.join(app.config['UPLOAD_FOLDER'], filename)
+                cv_pdf.save(cv_pdf_path)
+
+            # Habilidades
+            habilidades = request.form.getlist('habilidades')
+            competencias = request.form.getlist('competencias')
 
             if existe:
-                # Ya existe → hacer UPDATE
                 cursor.execute("""
-                    UPDATE Aspirantes SET nombre=?, telefono=?, resumen=? WHERE id_aspirante=?
-                """, (nombre, telefono, resumen, id_asp))
+                    UPDATE Aspirantes SET 
+                    nombre=?, apellido_paterno=?, apellido_materno=?, telefono=?, estado_civil=?,
+                    sexo=?, fecha_nacimiento=?, nacionalidad=?, rfc=?, direccion=?,
+                    disponibilidad_reubicacion=?, disponibilidad_viajar=?, licencia_conducir=?,
+                    modalidad=?, puesto_actual=?, resumen=?,
+                    foto_perfil=?, cv_pdf=?,
+                    grado_estudios=?, cedula_profesional=?, estatus_academico=?,
+                    institucion=?, pais_academico=?, fecha_inicio=?, fecha_fin=?,
+                    empresa=?, domicilio_empresa=?, telefono_empresa=?,
+                    telefono_jefe=?, puesto_jefe=?, fecha_ingreso=?, fecha_salida=?,
+                    puesto=?, funciones=?, sueldo_inicial=?, sueldo_final=?, motivo_salida=?,
+                    nombre_referencia=?, ocupacion_referencia=?, telefono_referencia=?,
+                    anios_conocido=?, empresa_referencia=?, doc_pdf_referencia=?
+                WHERE id_usuario=?
+                """, (
+                    nombre, apellido_paterno, apellido_materno, telefono, estado_civil,
+                    sexo, fecha_nacimiento, nacionalidad, rfc, direccion,
+                    disponibilidad_reubicacion, disponibilidad_viajar, licencia_conducir,
+                    modalidad, puesto_actual, resumen,
+                    foto_perfil_path, cv_pdf_path,
+                    grado_estudios, cedula_profesional, estatus_academico,
+                    institucion, pais_academico, fecha_inicio, fecha_fin,
+                    empresa, domicilio_empresa, telefono_empresa,
+                    telefono_jefe, puesto_jefe, fecha_ingreso, fecha_salida,
+                    puesto, funciones, sueldo_inicial, sueldo_final, motivo_salida,
+                    nombre_referencia, ocupacion_referencia, telefono_referencia,
+                    anios_conocido, empresa_referencia, doc_pdf_referencia_path,
+                    user['id']
+                ))
             else:
-                # No existe → hacer INSERT
                 cursor.execute("""
-                    INSERT INTO Aspirantes (id_usuario, nombre, telefono, resumen)
-                    VALUES (?, ?, ?, ?)
-                """, (user['id'], nombre, telefono, resumen))
-                cursor.execute("SELECT SCOPE_IDENTITY()")
-                nuevo_id = cursor.fetchone()[0]
-                cursor.execute("UPDATE Usuarios SET id_aspirante=? WHERE id_usuario=?", (nuevo_id, user['id']))
-                session['usuario']['id_aspirante'] = nuevo_id
-        else:
-            # Caso de seguridad extra: si no hay id_asp, igual se inserta
-            cursor.execute("""
-                INSERT INTO Aspirantes (id_usuario, nombre, telefono, resumen)
-                VALUES (?, ?, ?, ?)
-            """, (user['id'], nombre, telefono, resumen))
-            cursor.execute("SELECT SCOPE_IDENTITY()")
-            nuevo_id = cursor.fetchone()[0]
-            cursor.execute("UPDATE Usuarios SET id_aspirante=? WHERE id_usuario=?", (nuevo_id, user['id']))
-            session['usuario']['id_aspirante'] = nuevo_id
+                    INSERT INTO Aspirantes (
+                        id_usuario, nombre, apellido_paterno, apellido_materno, telefono, estado_civil,
+                        sexo, fecha_nacimiento, nacionalidad, rfc, direccion,
+                        disponibilidad_reubicacion, disponibilidad_viajar, licencia_conducir,
+                        modalidad, puesto_actual, resumen, foto_perfil, cv_pdf,
+                        grado_estudios, cedula_profesional, estatus_academico,
+                        institucion, pais_academico, fecha_inicio, fecha_fin,
+                        empresa, domicilio_empresa, telefono_empresa,
+                        telefono_jefe, puesto_jefe, fecha_ingreso, fecha_salida,
+                        puesto, funciones, sueldo_inicial, sueldo_final, motivo_salida,
+                        nombre_referencia, ocupacion_referencia, telefono_referencia,
+                        anios_conocido, empresa_referencia, doc_pdf_referencia
+                    ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+                """, (
+                    user['id'], nombre, apellido_paterno, apellido_materno, telefono, estado_civil,
+                    sexo, fecha_nacimiento, nacionalidad, rfc, direccion,
+                    disponibilidad_reubicacion, disponibilidad_viajar, licencia_conducir,
+                    modalidad, puesto_actual, resumen, foto_perfil_path, cv_pdf_path,
+                    grado_estudios, cedula_profesional, estatus_academico,
+                    institucion, pais_academico, fecha_inicio, fecha_fin,
+                    empresa, domicilio_empresa, telefono_empresa,
+                    telefono_jefe, puesto_jefe, fecha_ingreso, fecha_salida,
+                    puesto, funciones, sueldo_inicial, sueldo_final, motivo_salida,
+                    nombre_referencia, ocupacion_referencia, telefono_referencia,
+                    anios_conocido, empresa_referencia, doc_pdf_referencia_path
+                ))
 
-        conn.commit()
-        flash('Perfil actualizado correctamente', 'success')
-        cursor.close()
-        conn.close()
-        return redirect(url_for('perfil_candidato'))
+            conn.commit()
+            flash('Perfil actualizado correctamente', 'success')
+            return redirect(url_for('perfil_candidato'))
 
-    # GET: precargar datos
+        except Exception as e:
+            conn.rollback()
+            flash(f'Error al actualizar perfil: {str(e)}', 'danger')
+            app.logger.error(f'Error en editar_perfil_candidato: {str(e)}')
+
     candidato = {}
-    if id_asp:
-        cursor.execute("SELECT * FROM Aspirantes WHERE id_aspirante = ?", (id_asp,))
+    if existe:
+        cursor.execute("SELECT * FROM Aspirantes WHERE id_usuario = ?", (user['id'],))
         row = cursor.fetchone()
         if row:
             cols = [col[0].lower() for col in cursor.description]
             candidato = dict(zip(cols, row))
+
     cursor.close()
     conn.close()
     return render_template('candidato/editar_perfil.html', candidato=candidato)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -261,6 +409,52 @@ def postulaciones_candidato():
     conn.close()
 
     return render_template('candidato/postulaciones.html', postulaciones=postulaciones)
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 # --------------------------
 # Rutas para Administrador
@@ -414,3 +608,5 @@ def postulaciones_admin():
     conn.close()
 
     return render_template('administrador/postulaciones.html', postulaciones=postulaciones)
+if __name__ == '__main__':
+    app.run(debug=True)
